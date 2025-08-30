@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nossa Newsletter - {{assunto}}</title>
+    <style>
+        /* Estilos base */
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            background-color: #f5f5f5;
+        }
+        
+        /* Container principal */
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+        
+        /* Cabeçalho */
+        .header {
+            background-color: #0d6efd;
+            padding: 30px 20px;
+            text-align: center;
+            color: white;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        /* Conteúdo */
+        .content {
+            padding: 30px 20px;
+        }
+        
+        /* Destaque */
+        .highlight {
+            background-color: #f8f9fa;
+            border-left: 4px solid #0d6efd;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        /* Botão */
+        .button {
+            display: inline-block;
+            padding: 12px 25px;
+            background-color: #0d6efd;
+            color: white !important;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 500;
+            margin: 15px 0;
+        }
+        
+        /* Rodapé */
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        /* Responsividade */
+        @media only screen and (max-width: 600px) {
+            .content, .header {
+                padding: 20px 15px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+        }
+        
+        /* Estilos específicos para clientes de e-mail */
+        .fallback {
+            font-family: Arial, sans-serif;
+            -ms-text-size-adjust: 100%;
+            -webkit-text-size-adjust: 100%;
+        }
+        
+        /* Links */
+        a {
+            color: #0d6efd;
+            text-decoration: underline;
+        }
+        
+        /* Imagens responsivas */
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333333; background-color: #f5f5f5;">
+    <div class="email-container" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+        <!-- Cabeçalho -->
+        <div class="header" style="background-color: #0d6efd; padding: 30px 20px; text-align: center; color: white;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 600;">Nossa Newsletter</h1>
+            <p style="margin: 10px 0 0; opacity: 0.9;">{{data_atual}}</p>
+        </div>
+        
+        <!-- Conteúdo -->
+        <div class="content" style="padding: 30px 20px;">
+            <p>Olá {{nome}},</p>
+            
+            <p>Esperamos que esteja tudo bem com você! Estamos enviando nossa newsletter mensal com as últimas novidades e atualizações.</p>
+            
+            <h2 style="color: #0d6efd; margin-top: 25px;">Destaque da Semana</h2>
+            
+            <div class="highlight" style="background-color: #f8f9fa; border-left: 4px solid #0d6efd; padding: 15px; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #0d6efd;">{{destaque_titulo}}</h3>
+                <p style="margin-bottom: 0;">{{destaque_descricao}}</p>
+            </div>
+            
+            <h2 style="color: #0d6efd; margin-top: 30px;">Novidades</h2>
+            
+            <div style="margin: 20px 0;">
+                <h3 style="margin: 0 0 10px 0; font-size: 18px;">Novos Recursos</h3>
+                <p>{{novos_recursos}}</p>
+            </div>
+            
+            <div style="margin: 20px 0;">
+                <h3 style="margin: 0 0 10px 0; font-size: 18px;">Próximos Passos</h3>
+                <p>{{proximo_passos}}</p>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{{link_acao}}" class="button" style="display: inline-block; padding: 12px 25px; background-color: #0d6efd; color: white !important; text-decoration: none; border-radius: 5px; font-weight: 500; margin: 15px 0;">
+                    Acessar Agora
+                </a>
+            </div>
+            
+            <p>Se tiver alguma dúvida ou precisar de ajuda, não hesite em entrar em contato conosco.</p>
+            
+            <p>Atenciosamente,<br>Equipe de Comunicação</p>
+        </div>
+        
+        <!-- Rodapé -->
+        <div class="footer" style="background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #6c757d; border-top: 1px solid #e9ecef;">
+            <p style="margin: 0 0 10px 0;">© {{ano_atual}} Nossa Empresa. Todos os direitos reservados.</p>
+            
+            <p style="margin: 0 0 10px 0;">
+                <a href="{{link_privacidade}}" style="color: #6c757d; text-decoration: underline; margin: 0 10px;">Política de Privacidade</a>
+                <a href="{{link_contato}}" style="color: #6c757d; text-decoration: underline; margin: 0 10px;">Contato</a>
+                <a href="{{link_descadastrar}}" style="color: #6c757d; text-decoration: underline; margin: 0 10px;">Descadastrar</a>
+            </p>
+            
+            <p style="margin: 0; font-size: 11px; color: #adb5bd;">
+                Você está recebendo este e-mail porque se cadastrou em nosso site ou fez uma compra conosco.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

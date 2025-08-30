@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Envio de E-mails</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            padding-top: 20px;
+            background-color: #f8f9fa;
+        }
+        .sidebar {
+            position: fixed;
+            top: 20px;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+            padding: 20px 0;
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+            background-color: #f8f9fa;
+        }
+        .main-content {
+            margin-left: 220px;
+            padding: 20px;
+        }
+        .nav-link {
+            color: #333;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+        }
+        .nav-link:hover, .nav-link.active {
+            background-color: #0d6efd;
+            color: white;
+        }
+        .nav-link i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+        .card {
+            margin-bottom: 20px;
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            font-weight: 600;
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border: none;
+        }
+        .btn-outline-primary {
+            color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .btn-outline-primary:hover {
+            background-color: #0d6efd;
+            color: white;
+        }
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1100;
+        }
+        #previewModal .modal-body iframe {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-2 d-none d-md-block sidebar">
+                <div class="position-sticky">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'main.index' %}active{% endif %}" href="{{ url_for('main.index') }}">
+                                <i class="fas fa-home"></i> Início
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'main.contatos' %}active{% endif %}" href="{{ url_for('main.contatos') }}">
+                                <i class="fas fa-users"></i> Contatos
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#enviarEmailModal">
+                                <i class="fas fa-paper-plane"></i> Enviar E-mail
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#importarContatosModal">
+                                <i class="fas fa-file-import"></i> Importar Contatos
+                            </a>
+                        </li>
+                        <li class="nav-item mt-4">
+                            <a class="nav-link text-muted" href="#" data-bs-toggle="modal" data-bs-target="#sobreModal">
+                                <i class="fas fa-info-circle"></i> Sobre
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-10 ms-sm-auto px-md-4 main-content">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container">
+        <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">Notificação</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body"></div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    {% include 'modals/enviar_email.html' %}
+    {% include 'modals/importar_contatos.html' %}
+    {% include 'modals/sobre.html' %}
+    {% include 'modals/preview_email.html' %}
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <script>
+        // Inicializa os tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+
+        // Função para exibir notificações toast
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastBody = toast.querySelector('.toast-body');
+            const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toast);
+            
+            // Define a classe de cor com base no tipo
+            toast.className = 'toast';
+            if (type === 'success') toast.classList.add('bg-success', 'text-white');
+            else if (type === 'error') toast.classList.add('bg-danger', 'text-white');
+            else if (type === 'warning') toast.classList.add('bg-warning');
+            else toast.classList.add('bg-light');
+            
+            toastBody.textContent = message;
+            toastBootstrap.show();
+        }
+
+        // Função para carregar a pré-visualização do e-mail
+        function carregarPreview() {
+            const contatoId = document.getElementById('contato_preview').value;
+            const assunto = document.getElementById('assunto').value;
+            const conteudo = document.getElementById('conteudo').value;
+            
+            if (!contatoId) {
+                showToast('Selecione um contato para visualizar a prévia', 'warning');
+                return;
+            }
+            
+            fetch('{{ url_for("main.preview_email") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    contato_id: contatoId,
+                    assunto: assunto,
+                    conteudo: conteudo
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('preview-assunto').textContent = data.assunto;
+                    const previewIframe = document.getElementById('preview-iframe');
+                    previewIframe.srcdoc = data.conteudo;
+                    
+                    // Atualiza os campos de assunto e conteúdo com os valores formatados
+                    document.getElementById('assunto').value = data.assunto;
+                    
+                    const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+                    previewModal.show();
+                } else {
+                    showToast('Erro ao carregar prévia: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                showToast('Erro ao carregar prévia', 'error');
+            });
+        }
+
+        // Função para enviar e-mails
+        function enviarEmails(dryRun = false) {
+            const contatosSelecionados = Array.from(document.querySelectorAll('.contato-checkbox:checked'))
+                .map(checkbox => parseInt(checkbox.value));
+                
+            if (contatosSelecionados.length === 0) {
+                showToast('Selecione pelo menos um contato', 'warning');
+                return;
+            }
+            
+            const assunto = document.getElementById('assunto').value;
+            const conteudo = document.getElementById('conteudo').value;
+            
+            if (!assunto || !conteudo) {
+                showToast('Preencha o assunto e o conteúdo do e-mail', 'warning');
+                return;
+            }
+            
+            const confirmMessage = dryRun 
+                ? 'Deseja simular o envio para ' + contatosSelecionados.length + ' contato(s)?' 
+                : 'Deseja enviar o e-mail para ' + contatosSelecionados.length + ' contato(s)?';
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            const btnEnviar = document.getElementById('btnEnviar');
+            const btnEnviarTexto = btnEnviar.innerHTML;
+            btnEnviar.disabled = true;
+            btnEnviar.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Enviando...';
+            
+            fetch('{{ url_for("main.enviar_emails") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    contatos_ids: contatosSelecionados,
+                    assunto: assunto,
+                    conteudo: conteudo,
+                    dry_run: dryRun
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const sucessos = data.results.filter(r => r.status === 'sent' || r.status === 'dry_run').length;
+                    const falhas = data.results.filter(r => r.status === 'failed').length;
+                    
+                    const mensagem = dryRun 
+                        ? `Simulação concluída: ${sucessos} e-mails seriam enviados, ${falhas} falhas`
+                        : `Envio concluído: ${sucessos} e-mails enviados, ${falhas} falhas`;
+                    
+                    showToast(mensagem, 'success');
+                    
+                    // Se não for dry run, atualiza a página para ver os logs
+                    if (!dryRun) {
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 2000);
+                    }
+                } else {
+                    showToast('Erro: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                showToast('Erro ao enviar e-mails', 'error');
+            })
+            .finally(() => {
+                btnEnviar.disabled = false;
+                btnEnviar.innerHTML = btnEnviarTexto;
+            });
+        }
+        
+        // Função para selecionar/desselecionar todos os contatos
+        function toggleSelectAll(source) {
+            const checkboxes = document.querySelectorAll('.contato-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = source.checked;
+            });
+        }
+        
+        // Inicialização quando o DOM estiver carregado
+        document.addEventListener('DOMContentLoaded', function() {
+            // Atualiza o contador de caracteres do assunto
+            const assuntoInput = document.getElementById('assunto');
+            if (assuntoInput) {
+                const assuntoCounter = document.getElementById('assunto-counter');
+                assuntoInput.addEventListener('input', function() {
+                    assuntoCounter.textContent = this.value.length + '/100';
+                });
+            }
+            
+            // Adiciona o evento de clique para os botões de ação em massa
+            document.querySelectorAll('.btn-acao').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const action = this.dataset.action;
+                    if (action === 'selecionar-todos') {
+                        document.querySelectorAll('.contato-checkbox').forEach(checkbox => {
+                            checkbox.checked = true;
+                        });
+                    } else if (action === 'desmarcar-todos') {
+                        document.querySelectorAll('.contato-checkbox').forEach(checkbox => {
+                            checkbox.checked = false;
+                        });
+                    } else if (action === 'excluir-selecionados') {
+                        // Implementar exclusão de contatos selecionados
+                        alert('Funcionalidade de exclusão será implementada em breve');
+                    }
+                });
+            });
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

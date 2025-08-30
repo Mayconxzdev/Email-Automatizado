@@ -1,0 +1,627 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Gerenciar Contatos</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#adicionarContatoModal">
+                    <i class="fas fa-plus"></i> Adicionar Contato
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#importarContatosModal">
+                    <i class="fas fa-file-import"></i> Importar
+                </button>
+                <div class="btn-group" role="group">
+                    <button id="btnGroupDrop1" type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-download"></i> Exportar
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="btnGroupDrop1">
+                        <li><a class="dropdown-item" href="#" onclick="exportarContatos('csv')">CSV</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="exportarContatos('xlsx')">Excel</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros e Busca -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" id="buscaContatos" class="form-control" placeholder="Buscar contatos..." onkeyup="filtrarContatos()">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="filtroStatus" onchange="filtrarContatos()">
+                        <option value="todos">Todos os contatos</option>
+                        <option value="com_email">Com e-mail</option>
+                        <option value="sem_email">Sem e-mail</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="ordenacao" onchange="ordenarContatos()">
+                        <option value="nome_asc">Nome (A-Z)</option>
+                        <option value="nome_desc">Nome (Z-A)</option>
+                        <option value="data_asc">Data (mais antigos)</option>
+                        <option value="data_desc" selected>Data (mais recentes)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Contatos -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Lista de Contatos</h5>
+            <div class="d-flex align-items-center">
+                <span id="contadorContatos" class="badge bg-primary me-3">{{ contatos|length }} contatos</span>
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-secondary" onclick="selecionarTodos()" data-bs-toggle="tooltip" title="Selecionar todos">
+                        <i class="fas fa-check-square"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="desmarcarTodos()" data-bs-toggle="tooltip" title="Desmarcar todos">
+                        <i class="far fa-square"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" onclick="excluirSelecionados()" data-bs-toggle="tooltip" title="Excluir selecionados">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if contatos %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="40" class="text-center">
+                                    <input type="checkbox" class="form-check-input" id="selecionarTodos" onchange="toggleSelecionarTodos(this)">
+                                </th>
+                                <th>Nome</th>
+                                <th>E-mail</th>
+                                <th>Último Envio</th>
+                                <th>Status</th>
+                                <th class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaContatos">
+                            {% for contato in contatos %}
+                            <tr class="contato-linha" data-nome="{{ contato.name|lower }}" data-email="{{ contato.email|default('', true)|lower }}">
+                                <td class="text-center">
+                                    <input type="checkbox" class="form-check-input contato-checkbox" value="{{ contato.id }}">
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm bg-light rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                            <span class="text-primary fw-bold">{{ contato.name[0]|upper if contato.name else '?' }}</span>
+                                        </div>
+                                        {{ contato.name }}
+                                    </div>
+                                </td>
+                                <td>{{ contato.email or '<span class="text-muted">Nenhum e-mail</span>'|safe }}</td>
+                                <td>
+                                    {% if contato.emails %}
+                                        {{ contato.emails[0].sent_at.strftime('%d/%m/%Y') if contato.emails else 'Nunca' }}
+                                    {% else %}
+                                        Nunca
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if contato.emails %}
+                                        {% set ultimo_envio = contato.emails[0] %}
+                                        <span class="badge bg-{{ 'success' if ultimo_envio.status == 'sent' else 'danger' }}">
+                                            {{ 'Enviado' if ultimo_envio.status == 'sent' else 'Falha' }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Nunca</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" 
+                                                onclick="editarContato('{{ contato.id }}')"
+                                                data-bs-toggle="tooltip" 
+                                                title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-secondary" 
+                                                onclick="selecionarParaEnvio('{{ contato.id }}')"
+                                                data-bs-toggle="tooltip" 
+                                                title="Enviar e-mail">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" 
+                                                onclick="confirmarExclusao('{{ contato.id }}')"
+                                                data-bs-toggle="tooltip" 
+                                                title="Excluir">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Paginação -->
+                <div class="d-flex justify-content-between align-items-center p-3 border-top">
+                    <div class="text-muted">
+                        Mostrando <span id="contagemExibida">{{ contatos|length }}</span> de {{ contatos|length }} contatos
+                    </div>
+                    <nav aria-label="Navegação de páginas">
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Anterior</a>
+                            </li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            <li class="page-item">
+                                <a class="page-link" href="#">Próximo</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+                
+            {% else %}
+                <div class="text-center py-5">
+                    <div class="mb-3">
+                        <i class="fas fa-users fa-4x text-muted"></i>
+                    </div>
+                    <h5 class="text-muted mb-3">Nenhum contato cadastrado</h5>
+                    <p class="text-muted mb-4">Adicione contatos manualmente ou importe uma lista de contatos para começar.</p>
+                    <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#adicionarContatoModal">
+                        <i class="fas fa-plus me-1"></i> Adicionar Contato
+                    </button>
+                    <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#importarContatosModal">
+                        <i class="fas fa-file-import me-1"></i> Importar Contatos
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Adicionar/Editar Contato -->
+<div class="modal fade" id="adicionarContatoModal" tabindex="-1" aria-labelledby="adicionarContatoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="adicionarContatoModalLabel">Adicionar Contato</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form id="formContato" onsubmit="salvarContato(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="contatoId">
+                    <div class="mb-3">
+                        <label for="nome" class="form-label">Nome</label>
+                        <input type="text" class="form-control" id="nome" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">E-mail</label>
+                        <input type="email" class="form-control" id="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="telefone" class="form-label">Telefone (opcional)</label>
+                        <input type="tel" class="form-control" id="telefone">
+                    </div>
+                    <div class="mb-3">
+                        <label for="observacoes" class="form-label">Observações</label>
+                        <textarea class="form-control" id="observacoes" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="confirmarExclusaoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir o(s) contato(s) selecionado(s)? Esta ação não pode ser desfeita.</p>
+                <div id="listaContatosExclusao" class="mt-3">
+                    <!-- Lista de contatos a serem excluídos será inserida aqui -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnConfirmarExclusao" class="btn btn-danger" onclick="confirmarExclusaoFinal()">
+                    <i class="fas fa-trash me-1"></i> Excluir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Variáveis globais
+    let contatosParaExcluir = [];
+    
+    // Inicialização quando o DOM estiver carregado
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inicializa os tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Configura o formulário de contato
+        const formContato = document.getElementById('formContato');
+        if (formContato) {
+            formContato.addEventListener('submit', function(e) {
+                e.preventDefault();
+                salvarContato(e);
+            });
+        }
+        
+        // Configura o modal de adicionar contato
+        const modalAdicionarContato = document.getElementById('adicionarContatoModal');
+        if (modalAdicionarContato) {
+            modalAdicionarContato.addEventListener('hidden.bs.modal', function () {
+                // Limpa o formulário quando o modal é fechado
+                formContato.reset();
+                document.getElementById('contatoId').value = '';
+                document.getElementById('adicionarContatoModalLabel').textContent = 'Adicionar Contato';
+            });
+        }
+    });
+    
+    // Função para filtrar contatos na tabela
+    function filtrarContatos() {
+        const termoBusca = document.getElementById('buscaContatos').value.toLowerCase();
+        const filtroStatus = document.getElementById('filtroStatus').value;
+        const linhas = document.querySelectorAll('.contato-linha');
+        let contadorVisiveis = 0;
+        
+        linhas.forEach(linha => {
+            const nome = linha.getAttribute('data-nome') || '';
+            const email = linha.getAttribute('data-email') || '';
+            const correspondeBusca = nome.includes(termoBusca) || email.includes(termoBusca);
+            
+            let correspondeFiltro = true;
+            if (filtroStatus === 'com_email' && !email) {
+                correspondeFiltro = false;
+            } else if (filtroStatus === 'sem_email' && email) {
+                correspondeFiltro = false;
+            }
+            
+            if (correspondeBusca && correspondeFiltro) {
+                linha.style.display = '';
+                contadorVisiveis++;
+            } else {
+                linha.style.display = 'none';
+            }
+        });
+        
+        // Atualiza o contador
+        document.getElementById('contagemExibida').textContent = contadorVisiveis;
+    }
+    
+    // Função para ordenar contatos
+    function ordenarContatos() {
+        const ordenacao = document.getElementById('ordenacao').value;
+        const tbody = document.getElementById('tabelaContatos');
+        const linhas = Array.from(tbody.getElementsByTagName('tr'));
+        
+        linhas.sort((a, b) => {
+            const nomeA = a.getAttribute('data-nome') || '';
+            const nomeB = b.getAttribute('data-nome') || '';
+            const emailA = a.getAttribute('data-email') || '';
+            const emailB = b.getAttribute('data-email') || '';
+            
+            switch (ordenacao) {
+                case 'nome_asc':
+                    return nomeA.localeCompare(nomeB);
+                case 'nome_desc':
+                    return nomeB.localeCompare(nomeA);
+                case 'data_asc':
+                    // Implementar ordenação por data de cadastro (ascendente)
+                    return 0;
+                case 'data_desc':
+                    // Implementar ordenação por data de cadastro (descendente)
+                    return 0;
+                default:
+                    return 0;
+            }
+        });
+        
+        // Remove as linhas atuais
+        while (tbody.firstChild) {
+            tbody.removeChild(tbody.firstChild);
+        }
+        
+        // Adiciona as linhas ordenadas
+        linhas.forEach(linha => {
+            tbody.appendChild(linha);
+        });
+    }
+    
+    // Função para selecionar/desselecionar todos os contatos
+    function toggleSelecionarTodos(checkbox) {
+        const checkboxes = document.querySelectorAll('.contato-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = checkbox.checked;
+        });
+    }
+    
+    // Função para selecionar todos os contatos
+    function selecionarTodos() {
+        document.querySelectorAll('.contato-checkbox').forEach(checkbox => {
+            checkbox.checked = true;
+        });
+        document.getElementById('selecionarTodos').checked = true;
+    }
+    
+    // Função para desmarcar todos os contatos
+    function desmarcarTodos() {
+        document.querySelectorAll('.contato-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        document.getElementById('selecionarTodos').checked = false;
+    }
+    
+    // Função para excluir contatos selecionados
+    function excluirSelecionados() {
+        // Obtém todos os checkboxes marcados
+        const checkboxes = document.querySelectorAll('.contato-checkbox:checked');
+        
+        if (checkboxes.length === 0) {
+            showToast('Nenhum contato selecionado para exclusão', 'warning');
+            return;
+        }
+        
+        // Prepara a lista de IDs para exclusão
+        const contatosParaExcluir = Array.from(checkboxes).map(checkbox => parseInt(checkbox.value));
+        
+        // Chama a função de confirmação de exclusão
+        confirmarExclusao(contatosParaExcluir);
+    }
+    
+    // Função para abrir o modal de confirmação de exclusão
+    function confirmarExclusao(contatoId = null) {
+        contatosParaExcluir = [];
+        const listaContatos = document.getElementById('listaContatosExclusao');
+        listaContatos.innerHTML = '';
+        
+        if (contatoId) {
+            // Exclusão de um único contato
+            const linha = document.querySelector(`.contato-checkbox[value="${contatoId}"]`).closest('tr');
+            if (linha) {
+                const nome = linha.cells[1].textContent.trim();
+                const email = linha.cells[2].textContent.trim();
+                contatosParaExcluir.push(contatoId);
+                listaContatos.innerHTML = `
+                    <div class="alert alert-light">
+                        <strong>${nome}</strong><br>
+                        ${email || '<span class="text-muted">Sem e-mail</span>'}
+                    </div>
+                `;
+            }
+        } else {
+            // Exclusão múltipla
+            const checkboxes = document.querySelectorAll('.contato-checkbox:checked');
+            if (checkboxes.length === 0) {
+                showToast('Selecione pelo menos um contato para excluir', 'warning');
+                return;
+            }
+            
+            checkboxes.forEach(checkbox => {
+                const contatoId = checkbox.value;
+                const linha = checkbox.closest('tr');
+                const nome = linha.cells[1].textContent.trim();
+                const email = linha.cells[2].textContent.trim();
+                
+                contatosParaExcluir.push(contatoId);
+                listaContatos.innerHTML += `
+                    <div class="alert alert-light mb-2">
+                        <strong>${nome}</strong><br>
+                        ${email || '<span class="text-muted">Sem e-mail</span>'}
+                    </div>
+                `;
+            });
+        }
+        
+        // Exibe o modal de confirmação
+        const modal = new bootstrap.Modal(document.getElementById('confirmarExclusaoModal'));
+        modal.show();
+    }
+    
+    // Função para confirmar a exclusão dos contatos
+    function confirmarExclusaoFinal() {
+        if (contatosParaExcluir.length === 0) {
+            showToast('Nenhum contato selecionado para exclusão', 'warning');
+            return;
+        }
+        
+        // Desativa o botão de confirmação para evitar múltiplos cliques
+        const btnConfirmar = document.getElementById('btnConfirmarExclusao');
+        btnConfirmar.disabled = true;
+        btnConfirmar.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Excluindo...';
+        
+        // Faz a chamada AJAX para excluir cada contato
+        const promises = contatosParaExcluir.map(contatoId => {
+            return fetch(`/excluir_contato/${contatoId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    return { success: true, id: contatoId };
+                } else {
+                    console.error('Erro ao excluir contato:', data.message);
+                    return { success: false, id: contatoId, error: data.message };
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao excluir contato:', error);
+                return { success: false, id: contatoId, error: error.message };
+            });
+        });
+        
+        // Processa os resultados
+        Promise.all(promises).then(results => {
+            const sucessos = results.filter(r => r.success).length;
+            const falhas = results.filter(r => !r.success).length;
+            
+            // Fecha o modal de confirmação
+            const modal = bootstrap.Modal.getInstance(document.getElementById('confirmarExclusaoModal'));
+            modal.hide();
+            
+            // Mostra mensagem de sucesso ou erro
+            if (falhas === 0) {
+                showToast(`${sucessos} contato(s) excluído(s) com sucesso!`, 'success');
+            } else if (sucessos === 0) {
+                showToast(`Falha ao excluir ${falhas} contato(s). Tente novamente.`, 'danger');
+            } else {
+                showToast(`${sucessos} contato(s) excluído(s), mas ${falhas} falharam.`, 'warning');
+            }
+            
+            // Recarrega a página após 1 segundo
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        });
+    }
+    
+    // Função para exportar contatos
+    function exportarContatos(formato) {
+        // Implementar lógica de exportação
+        alert(`Exportando contatos em formato ${formato.toUpperCase()}`);
+        // Aqui você implementaria a lógica para exportar os dados
+        // Pode ser uma chamada AJAX para o backend ou geração no frontend
+    }
+    
+    // Função para editar um contato
+    function editarContato(contatoId) {
+        // Limpa o formulário
+        document.getElementById('formContato').reset();
+        
+        // Mostra o indicador de carregamento
+        document.getElementById('loadingSpinner').classList.remove('d-none');
+        
+        // Busca os dados do contato no servidor
+        fetch(`/obter_contato/${contatoId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao carregar contato');
+                }
+                return response.json();
+            })
+            .then(contato => {
+                // Preenche o formulário com os dados do contato
+                document.getElementById('contatoId').value = contato.id;
+                document.getElementById('nome').value = contato.name || '';
+                document.getElementById('email').value = contato.email || '';
+                document.getElementById('telefone').value = contato.telefone || '';
+                document.getElementById('observacoes').value = contato.observacoes || '';
+                
+                // Altera o título do modal
+                document.getElementById('adicionarContatoModalLabel').textContent = 'Editar Contato';
+                
+                // Esconde o indicador de carregamento
+                document.getElementById('loadingSpinner').classList.add('d-none');
+                
+                // Abre o modal
+                const modal = new bootstrap.Modal(document.getElementById('adicionarContatoModal'));
+                modal.show();
+            })
+            .catch(error => {
+                console.error('Erro ao carregar contato:', error);
+                showToast('Erro ao carregar dados do contato', 'error');
+                document.getElementById('loadingSpinner').classList.add('d-none');
+            });
+    }
+    
+    // Função para salvar um contato (criar ou atualizar)
+    function salvarContato(event) {
+        event.preventDefault();
+        
+        const contatoId = document.getElementById('contatoId').value;
+        const nome = document.getElementById('nome').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const telefone = document.getElementById('telefone').value.trim();
+        const observacoes = document.getElementById('observacoes').value.trim();
+        
+        if (!nome || !email) {
+            showToast('Nome e e-mail são obrigatórios', 'warning');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('nome', nome);
+        formData.append('email', email);
+        if (telefone) formData.append('telefone', telefone);
+        if (observacoes) formData.append('observacoes', observacoes);
+        
+        const url = contatoId ? `/editar_contato/${contatoId}` : '/adicionar_contato';
+        const method = contatoId ? 'PUT' : 'POST';
+        
+        fetch(url, {
+            method: method,
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Fecha o modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('adicionarContatoModal'));
+                modal.hide();
+                
+                // Mostra mensagem de sucesso
+                showToast(data.message, 'success');
+                
+                // Recarrega a página após 1 segundo
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                showToast(data.message || 'Erro ao salvar contato', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            showToast('Erro ao salvar contato', 'error');
+        });
+    }
+    
+    // Função para selecionar contato para envio de e-mail
+    function selecionarParaEnvio(contatoId) {
+        // Abre o modal de envio de e-mail
+        const modal = new bootstrap.Modal(document.getElementById('enviarEmailModal'));
+        modal.show();
+        
+        // Marca o contato no modal
+        setTimeout(() => {
+            const checkbox = document.querySelector(`.contato-checkbox[value="${contatoId}"]`);
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        }, 500);
+    }
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,108 @@
+<!-- Modal Enviar E-mail -->
+<div class="modal fade" id="enviarEmailModal" tabindex="-1" aria-labelledby="enviarEmailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="enviarEmailModalLabel">Enviar E-mail</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form id="formEnviarEmail" onsubmit="enviarEmails(false); return false;">
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="contato_preview" class="form-label">Pré-visualizar com contato</label>
+                            <select class="form-select" id="contato_preview">
+                                <option value="">Selecione um contato para visualizar</option>
+                                {% for contato in contatos %}
+                                <option value="{{ contato.id }}">{{ contato.name }} ({{ contato.email }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <button type="button" class="btn btn-outline-secondary" onclick="carregarPreview()">
+                                <i class="fas fa-eye"></i> Visualizar E-mail
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="assunto" class="form-label">Assunto <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="assunto" required 
+                                   placeholder="Assunto do e-mail" maxlength="100">
+                            <span class="input-group-text" id="assunto-counter">0/100</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="conteudo" class="form-label">Conteúdo <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="conteudo" rows="10" required 
+                                  placeholder="Digite o conteúdo do e-mail aqui...
+
+Você pode usar variáveis como:
+{{nome}} - Nome do contato
+{{email}} - E-mail do contato
+{{proximo_passos}} - Próximos passos personalizados"></textarea>
+                        <div class="form-text">
+                            Dica: Use as variáveis {{nome}}, {{email}} e {{proximo_passos}} para personalizar a mensagem.
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">Destinatários</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th width="40">
+                                                <input type="checkbox" class="form-check-input" id="selecionarTodosContatos" 
+                                                       onchange="toggleSelectAll(this)">
+                                            </th>
+                                            <th>Nome</th>
+                                            <th>E-mail</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for contato in contatos %}
+                                        <tr>
+                                            <td>
+                                                <input type="checkbox" class="form-check-input contato-checkbox" 
+                                                       value="{{ contato.id }}" checked>
+                                            </td>
+                                            <td>{{ contato.name }}</td>
+                                            <td>{{ contato.email }}</td>
+                                        </tr>
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="3" class="text-center py-4">
+                                                <p class="text-muted mb-2">Nenhum contato cadastrado.</p>
+                                                <a href="{{ url_for('main.contatos') }}" class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-plus"></i> Adicionar Contatos
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" onclick="enviarEmails(true)">
+                        <i class="fas fa-vial"></i> Testar Envio
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="btnEnviar">
+                        <i class="fas fa-paper-plane"></i> Enviar para Selecionados
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

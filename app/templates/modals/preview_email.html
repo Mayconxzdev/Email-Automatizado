@@ -1,0 +1,69 @@
+<!-- Modal de Visualização de E-mail -->
+<div class="modal fade" id="previewModal" tabindex="-1" role="dialog" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewModalLabel">Pré-visualização do E-mail</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="card">
+                    <div class="card-header">
+                        <strong>Assunto:</strong> <span id="preview-subject"></span>
+                    </div>
+                    <div class="card-body">
+                        <div id="preview-content" class="email-preview">
+                            <!-- Conteúdo do e-mail será inserido aqui via JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-primary" id="send-test-email">
+                    <i class="fas fa-paper-plane"></i> Enviar E-mail de Teste
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Função para carregar a pré-visualização
+function loadPreview() {
+    const subject = document.querySelector('input[name="subject"]').value;
+    const content = document.querySelector('textarea[name="content"]').value;
+    
+    document.getElementById('preview-subject').textContent = subject || '(Sem assunto)';
+    document.getElementById('preview-content').innerHTML = content || '<p>Nenhum conteúdo para exibir.</p>';
+}
+
+// Abre o modal de pré-visualização
+document.getElementById('preview-email-btn').addEventListener('click', function() {
+    loadPreview();
+    $('#previewModal').modal('show');
+});
+
+// Envia e-mail de teste
+document.getElementById('send-test-email').addEventListener('click', function() {
+    const btn = this;
+    const originalText = btn.innerHTML;
+    
+    // Mostra o ícone de carregamento
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Enviando...';
+    
+    // Simula o envio do e-mail (substitua por uma chamada AJAX real)
+    setTimeout(function() {
+        // Aqui você faria uma chamada AJAX para o endpoint de envio de teste
+        // Por enquanto, apenas mostramos uma mensagem de sucesso
+        alert('E-mail de teste enviado com sucesso!');
+        
+        // Restaura o botão
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }, 1500);
+});
+</script>

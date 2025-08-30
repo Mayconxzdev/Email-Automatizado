@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Dashboard</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#enviarEmailModal">
+                    <i class="fas fa-paper-plane"></i> Enviar E-mail
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#importarContatosModal">
+                    <i class="fas fa-file-import"></i> Importar Contatos
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Estatísticas Rápidas -->
+        <div class="col-md-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total de Contatos</h5>
+                    <h2 class="display-4">{{ total_contatos }}</h2>
+                    <a href="{{ url_for('main.contatos') }}" class="btn btn-sm btn-outline-primary mt-2">
+                        Ver todos
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">E-mails Enviados</h5>
+                    <h2 class="display-4">{{ total_emails_enviados }}</h2>
+                    <p class="text-muted mb-0">Total de envios</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Taxa de Sucesso</h5>
+                    <h2 class="display-4">{{ taxa_sucesso }}%</h2>
+                    <p class="text-muted mb-0">Últimos 30 dias</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Último Envio</h5>
+                    {% if ultimo_envio %}
+                        <h6>{{ ultimo_envio.assunto }}</h6>
+                        <p class="text-muted mb-1">{{ ultimo_envio.sent_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                        <span class="badge bg-{{ 'success' if ultimo_envio.status == 'sent' else 'danger' }}">
+                            {{ 'Enviado' if ultimo_envio.status == 'sent' else 'Falha' }}
+                        </span>
+                    {% else %}
+                        <p class="text-muted">Nenhum envio registrado</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Últimos Contatos Adicionados -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Últimos Contatos Adicionados</h5>
+            <a href="{{ url_for('main.contatos') }}" class="btn btn-sm btn-outline-primary">Ver Todos</a>
+        </div>
+        <div class="card-body">
+            {% if ultimos_contatos %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>E-mail</th>
+                                <th>Data de Cadastro</th>
+                                <th class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for contato in ultimos_contatos %}
+                            <tr>
+                                <td>{{ contato.name }}</td>
+                                <td>{{ contato.email }}</td>
+                                <td>{{ contato.created_at.strftime('%d/%m/%Y') }}</td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" 
+                                                onclick="selecionarParaEnvio({{ contato.id }})">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">Nenhum contato cadastrado ainda.</p>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#importarContatosModal">
+                        <i class="fas fa-plus"></i> Adicionar Contatos
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Histórico de Envios Recentes -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Histórico de Envios</h5>
+        </div>
+        <div class="card-body">
+            {% if historico_envios %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Data/Hora</th>
+                                <th>Destinatário</th>
+                                <th>Assunto</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for envio in historico_envios %}
+                            <tr>
+                                <td>{{ envio.sent_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td>{{ envio.contact.email }}</td>
+                                <td>{{ envio.subject|truncate(50) }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if envio.status == 'sent' else 'danger' }}">
+                                        {{ 'Enviado' if envio.status == 'sent' else 'Falha' }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">Nenhum envio registrado ainda.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Função para selecionar contato para envio de e-mail
+    function selecionarParaEnvio(contatoId) {
+        // Abre o modal de envio de e-mail
+        const modal = new bootstrap.Modal(document.getElementById('enviarEmailModal'));
+        modal.show();
+        
+        // Marca o contato no modal
+        setTimeout(() => {
+            const checkbox = document.querySelector(`.contato-checkbox[value="${contatoId}"]`);
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        }, 500);
+    }
+    
+    // Atualiza a página a cada 30 segundos para manter os dados atualizados
+    setTimeout(() => {
+        window.location.reload();
+    }, 30000);
+</script>
+{% endblock %}
+{% endblock %}

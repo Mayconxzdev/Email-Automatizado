@@ -1,0 +1,225 @@
+<!-- Modal Importar Contatos -->
+<div class="modal fade" id="importarContatosModal" tabindex="-1" aria-labelledby="importarContatosModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importarContatosModalLabel">Importar Contatos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form id="formImportarContatos" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Importe uma lista de contatos a partir de um arquivo Excel (.xlsx) ou CSV.
+                        O arquivo deve conter as colunas <strong>nome</strong> e <strong>e-mail</strong>.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="arquivo" class="form-label">Selecione o arquivo</label>
+                        <input class="form-control" type="file" id="arquivo" name="arquivo" accept=".xlsx,.csv" required>
+                        <div class="form-text">Formatos suportados: .xlsx, .csv</div>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="sobrescrever" name="sobrescrever">
+                        <label class="form-check-label" for="sobrescrever">
+                            Atualizar contatos existentes (com base no e-mail)
+                        </label>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <a class="btn btn-link p-0" data-bs-toggle="collapse" href="#detalhesImportacao" role="button" aria-expanded="false">
+                                <i class="fas fa-chevron-down me-1"></i> Formato do arquivo
+                            </a>
+                        </div>
+                        <div class="collapse" id="detalhesImportacao">
+                            <div class="card-body">
+                                <p>Seu arquivo deve seguir este formato (as colunas podem estar em qualquer ordem, mas os cabeçalhos devem corresponder):</p>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>nome</th>
+                                                <th>email</th>
+                                                <th>telefone</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>João Silva</td>
+                                                <td>joao@exemplo.com</td>
+                                                <td>(11) 99999-9999</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Maria Oliveira</td>
+                                                <td>maria@exemplo.com</td>
+                                                <td>(11) 98888-8888</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <p class="mb-1">Exemplo de arquivo CSV:</p>
+                                    <pre class="bg-light p-2 rounded">nome,email,telefone
+João Silva,joao@exemplo.com,(11) 99999-9999
+Maria Oliveira,maria@exemplo.com,(11) 98888-8888</pre>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <a href="{{ url_for('static', filename='exemplos/contatos_exemplo.xlsx') }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-download me-1"></i> Baixar modelo Excel
+                                    </a>
+                                    <a href="{{ url_for('static', filename='exemplos/contatos_exemplo.csv') }}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-download me-1"></i> Baixar modelo CSV
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Área de resultados da importação -->
+                    <div id="importResult" class="mt-3 d-none">
+                        <!-- Resultados serão exibidos aqui -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Fechar
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="btnImportar">
+                        <i class="fas fa-file-import me-1"></i> Importar Contatos
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Script para o modal de importação
+$(document).ready(function() {
+    // Configura o formulário de importação
+    $('#formImportarContatos').on('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const btnImportar = $('#btnImportar');
+        const btnImportarHtml = btnImportar.html();
+        
+        // Adiciona o parâmetro de sobrescrita
+        formData.append('sobrescrever', $('#sobrescrever').is(':checked'));
+        
+        // Desabilita o botão e mostra o spinner
+        btnImportar.prop('disabled', true);
+        btnImportar.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Importando...');
+        
+        // Limpa mensagens anteriores
+        $('#importResult').addClass('d-none').empty();
+        
+        // Envia o formulário via AJAX
+        $.ajax({
+            url: '{{ url_for("main.importar_contatos") }}',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.status === 'success') {
+                    // Mostra mensagem de sucesso
+                    showToast(response.message, 'success');
+                    
+                    // Exibe detalhes da importação
+                    let resultHtml = `
+                        <div class="alert alert-success">
+                            <h5><i class="fas fa-check-circle me-2"></i>${response.message}</h5>
+                            <ul class="mb-0">
+                                <li>Contatos adicionados: <strong>${response.detalhes.adicionados}</strong></li>
+                                <li>Contatos atualizados: <strong>${response.detalhes.atualizados}</strong></li>
+                                <li>Contatos duplicados: <strong>${response.detalhes.duplicados}</strong></li>
+                            </ul>
+                        </div>`;
+                    
+                    // Adiciona erros se houver
+                    if (response.detalhes.erros && response.detalhes.erros.length > 0) {
+                        resultHtml += `
+                        <div class="alert alert-warning mt-3">
+                            <h6><i class="fas fa-exclamation-triangle me-2"></i>Foram encontrados ${response.detalhes.erros.length} erros:</h6>
+                            <ul class="mb-0">
+                                ${response.detalhes.erros.map(erro => `<li>${erro}</li>`).join('')}
+                            </ul>
+                        </div>`;
+                    }
+                    
+                    $('#importResult').html(resultHtml).removeClass('d-none');
+                    
+                    // Se não houver erros, recarrega a página após 3 segundos
+                    if (!response.detalhes.erros || response.detalhes.erros.length === 0) {
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 3000);
+                    }
+                } else {
+                    showToast('Erro: ' + response.message, 'error');
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'Erro ao importar contatos';
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.message) {
+                        errorMessage += ': ' + response.message;
+                        
+                        // Mostra erros detalhados se disponíveis
+                        if (response.detalhes && response.detalhes.erros) {
+                            errorMessage += '\n' + response.detalhes.erros.join('\n');
+                        }
+                    }
+                } catch (e) {
+                    console.error('Erro ao processar resposta do servidor:', e);
+                }
+                
+                // Exibe o erro em um alerta no modal
+                $('#importResult').html(`
+                    <div class="alert alert-danger">
+                        <h5><i class="fas fa-exclamation-circle me-2"></i>Erro na Importação</h5>
+                        <p class="mb-0">${errorMessage}</p>
+                    </div>
+                `).removeClass('d-none');
+                
+                showToast(errorMessage, 'error');
+            },
+            complete: function() {
+                // Reabilita o botão e restaura o texto original
+                btnImportar.prop('disabled', false);
+                btnImportar.html(btnImportarHtml);
+                
+                // Rola até o resultado
+                $('html, body').animate({
+                    scrollTop: $('#importResult').offset().top - 20
+                }, 500);
+            }
+        });
+    });
+    
+    // Reseta o formulário quando o modal é fechado
+    $('#importarContatosModal').on('hidden.bs.modal', function () {
+        document.getElementById('formImportarContatos').reset();
+        $('#importResult').addClass('d-none').empty();
+    });
+    
+    // Atualiza o preview do nome do arquivo
+    $('#arquivo').on('change', function() {
+        const fileName = $(this).val().split('\\').pop();
+        if (fileName) {
+            $('#arquivoLabel').text(fileName);
+            $('#arquivoLabel').removeClass('text-muted').addClass('text-primary');
+        } else {
+            $('#arquivoLabel').text('Nenhum arquivo selecionado');
+            $('#arquivoLabel').removeClass('text-primary').addClass('text-muted');
+        }
+    });
+});
+</script>
